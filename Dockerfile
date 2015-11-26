@@ -8,9 +8,11 @@
 
 FROM ubuntu:precise
 MAINTAINER Alec Thompson "ajthompson042@gmail.com"
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 RUN apt-get update -y
 RUN apt-get upgrade -y
+RUN apt-get dist-upgrade -y
 
 # Set the env variable DEBIAN_FRONTEND to noninteractive
 ENV TERM xterm
@@ -19,7 +21,7 @@ ENV DEBIAN_FRONTEND noninteractive
 #RUN echo "export DEBIAN_FRONTEND=noninteractive" >> /etc/profile
 
 # install necessary files for remote GUI
-RUN apt-get install -y apt-utils sudo software-properties-common python-software-properties wget
+RUN apt-get install -y apt-utils sudo software-properties-common python-software-properties wget git language-pack-en 
 
 # Upstart and DBus have issues inside docker. We work around in order to install firefox.
 RUN dpkg-divert --local --rename --add /sbin/initctl && ln -sf /bin/true /sbin/initctl
@@ -145,38 +147,68 @@ RUN echo 'Categories=Development;IDE' >> /usr/share/applications/eclipse.desktop
 RUN echo 'Name[en]=Eclipse' >> /usr/share/applications/eclipse.desktop
 RUN ln -s /opt/eclipse/eclipse /usr/local/bin/eclipse
 
+## Copy over users ssh key
+RUN mkdir /home/wrecs/.ssh
+RUN chown wrecs /home/wrecs/.ssh
+ADD id_rsa /home/wrecs/.ssh/id_rsa
+RUN chown wrecs /home/wrecs/.ssh/id_rsa
+RUN chmod 700 /home/wrecs/.ssh/id_rsa
+RUN touch /home/wrecs/.ssh/known_hosts
+RUN chown wrecs /home/wrecs/.ssh/known_hosts
+RUN ssh-keyscan github.com >> /home/wrecs/.ssh/known_hosts
+
 ## Setup DRC workspace
-RUN apt-get install python-rosinstall python-wstool
+RUN apt-get install -y python-rosinstall python-wstool
 RUN sudo -H -u wrecs bash -c 'source ~/.bashrc; \
-	mkdir -p ~/drc_workspace/src; \
-	cd ~/drc_workspace/src; \
-	catkin_init_workspace; \
-	cd ~/drc_workspace; \
-	catkin_make; \
 	echo "source ~/drc_workspace/devel/setup.bash" >> ~/.bashrc; \
 	echo "export ATLAS_ROBOT_INTERFACE=~/drc_workspace/src/drc/bdi_api/AtlasRobotInterface" >> ~/.bashrc; \
 	echo "export LD_LIBRARY_PATH='${LD_LIBRARY_PATH}':'${ATLAS_ROBOT_INTERFACE}'/lib64" >> ~/.bashrc; \
-	echo alias drchome="'cd ~/drc_workspace/src/drc/'" >> ~/.bashrc; \
-	echo alias drcmake="'catkin_make install -DCMAKE_INSTALL_PREFIX:PATH=~/drc_workspace/install -C ~/drc_workspace -DCMAKE_BUILD_TYPE=Release'" >> ~/.bashrc; \
-	echo alias drceclipse="'catkin_make --force-cmake -G\"Eclipse CDT4 - Unix Makefiles\" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_MAKE_ARGUMENTS=-j8 -C ~/drc_workspace'" >> ~/.bashrc; \
+	echo alias drchome="cd ~/drc_workspace/src/drc/" >> ~/.bashrc; \
+	echo alias drcmake="catkin_make install -DCMAKE_INSTALL_PREFIX:PATH=~/drc_workspace/install -C ~/drc_workspace -DCMAKE_BUILD_TYPE=Release" >> ~/.bashrc; \
+	echo alias drceclipse="catkin_make --force-cmake -G\"Eclipse CDT4 - Unix Makefiles\" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_MAKE_ARGUMENTS=-j8 -C ~/drc_workspace" >> ~/.bashrc; \
 	echo "export GAZEBO_PLUGIN_PATH=~/drc_workspace/devel/lib:'${GAZEBO_PLUGIN_PATH}'" >> ~/.bashrc; \
 	echo "export GAZEBO_MODEL_PATH=~/drc_workspace/src/drc/field/robotiq:'${GAZEBO_MODEL_PATH}'" >> ~/.bashrc; \
 	echo "export PYTHONPATH=~/drc_workspace/src/drc/trajopt/build_trajopt/lib:~/drc_workspace/src/drc/trajopt:'${PYTHONPATH}'" >> ~/.bashrc; \
 	echo "export LD_LIBRARY_PATH='${LD_LIBRARY_PATH}':/usr/lib" >> ~/.bashrc; \
-	echo "export GUROBI_HOME='/opt/gurobi602/linux64'" >> ~/.bashrc; \
+	echo "export GUROBI_HOME=/opt/gurobi605/linux64" >> ~/.bashrc; \
 	echo "export OPENRAVE_DATA='${OPENRAVE_DATA}':~/drc_workspace/src/drc/trajopt/" >> ~/.bashrc; \
-	echo alias drctrajopt="'cd ~/drc_workspace/src/drc/trajopt/'" >> ~/.bashrc; \
+	echo alias drctrajopt="cd ~/drc_workspace/src/drc/trajopt/" >> ~/.bashrc; \
+	mkdir -p ~/drc_workspace/src; \
+        cd ~/drc_workspace/src; \
+        source ~/.bashrc; \
+	source /opt/ros/hydro/setup.sh; \
+        catkin_init_workspace; \
+        cd ~/drc_workspace; \
+        source ~/.bashrc; \
+        catkin_make; \
 	cd ~/drc_workspace/src; \
 	wstool init; \
-	wstool set drc https://github.com/WPI-Humanoid-Research-Lab/drc --git; \
+	wstool set drc git@github.com:WPI-Humanoid-Research-Lab/drc.git --git -y; \
 	wstool update'
 
 ## Install m100
 RUN dpkg -i /home/wrecs/drc_workspace/src/drc/sentis_tof_m100_pkg/m100api-1.0.0-Linux-amd64.deb
 
+## Download and copy over libAtlasSimInterface.so
+RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
+	wget https://dl.dropboxusercontent.com/u/30063350/AtlasSimInterface_3.0.2.tar.gz; \
+	tar xvf AtlasSimInterface_3.0.2.tar.gz'
+RUN mv /home/wrecs/Downloads/AtlasSimInterface_3.0.2/lib64/libAtlasSimInterface.so.3.0.2 /opt/ros/hydro/lib/libAtlasSimInterface3.so.3.0.2
+
 ## Build the workspace
 RUN sudo -H -u wrecs bash -c 'cd ~/drc_workspace; \
 	source ~/.bashrc; \
+	source /opt/ros/hydro/setup.sh; \
+	source /usr/share/drcsim/setup.sh; \
+	source ~/drc_workspace/devel/setup.bash; \
+	export ATLAS_ROBOT_INTERFACE=~/drc_workspace/src/drc/bdi_api/AtlasRobotInterface; \
+	export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}":"${ATLAS_ROBOT_INTERFACE}"/lib64/; \
+	export GAZEBO_PLUGIN_PATH=~/drc_workspace/devel/lib:"${GAZEBO_PLUGIN_PATH}"; \
+	export GAZEBO_MODEL_PATH=~/drc_workspace/src/drc/field/robotiq:"${GAZEBO_MODEL_PATH}"; \
+	export PYTHONPATH=~/drc_workspace/src/drc/trajopt/build_trajopt/lib:~/drc_workspace/src/drc/trajopt:"${PYTHONPATH}"; \
+	export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}":/usr/lib; \
+	export GUROBI_HOME=/opt/gurobi605/linux64; \
+	export OPENRAVE_DATA="${OPENRAVE_DATA}":~/drc_workspace/src/drc/trajopt/; \
 	catkin_make -j8'
 
 ## Expose port and start ssh daemon
