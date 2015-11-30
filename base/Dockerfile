@@ -17,6 +17,9 @@ RUN apt-get dist-upgrade -y
 # Set the env variable DEBIAN_FRONTEND to noninteractive
 ENV TERM xterm
 ENV DEBIAN_FRONTEND noninteractive
+ENV HOME /home/wrecs
+# Necessary for QT-apps/gazebo controls
+ENV QT_X11_NO_MITSHM 1
 #RUN echo "export TERM=xterm" >> /etc/profile
 #RUN echo "export DEBIAN_FRONTEND=noninteractive" >> /etc/profile
 
@@ -29,6 +32,7 @@ RUN dpkg-divert --local --rename --add /sbin/initctl && ln -sf /bin/true /sbin/i
 # Setup wrecs user
 RUN useradd -b /home -m wrecs
 RUN echo 'wrecs:wrecs' | chpasswd
+RUN echo 'root:root' | chpasswd
 
 # ubuntu precise image doesn't have universe repo
 RUN add-apt-repository "deb http://archive.ubuntu.com/ubuntu precise main universe restricted multiverse"
@@ -37,7 +41,7 @@ RUN add-apt-repository "deb http://archive.ubuntu.com/ubuntu precise main univer
 # set up ssh daemon
 RUN apt-get install -y openssh-server
 RUN mkdir /var/run/sshd
-RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+#RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 # Run WRECS stuff
 #RUN sudo -H -u wrecs bash -c 'bash /home/wrecs/install_scripts/install.bash'
@@ -71,7 +75,6 @@ RUN apt-get install -y openrave
 RUN aptitude install ros-hydro-desktop-full -y
 RUN rosdep init
 RUN sudo -H -u wrecs bash -c 'rosdep update'
-RUN sudo -H -u wrecs bash -c 'echo "source /opt/ros/hydro/setup.bash" >> ~/.bashrc; source ~/.bashrc'
 
 ## install ros packages that are needed
 RUN apt-get install -y ros-hydro-qt-ros ros-hydro-multisense ros-hydro-razer-hydra ros-hydro-camera-info-manager-py
@@ -121,7 +124,6 @@ RUN /etc/init.d/udev restart
 
 ## Install DRCsim
 RUN apt-get install -y drcsim-hydro
-RUN sudo -H -u wrecs bash -c 'echo "source /usr/share/drcsim/setup.sh" >> ~/.bashrc'
 
 ## Install useful software
 RUN apt-get install -y gconf-service libgconf-2-4 libnspr4 libnss3 libappindicator1
@@ -129,7 +131,7 @@ RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
 	wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'
 RUN dpkg -i /home/wrecs/Downloads/google-chrome-stable_current_amd64.deb
 RUN apt-get install -y terminator qtcreator stress fping iftop lm-sensors vm emacs htop
-RUN apt-get install -y gimp gitg gitk screen tshark wireshark ntp
+RUN apt-get install -y gimp gitg gitk screen tshark wireshark ntp vim
 RUN apt-get install -y openjdk-7-jre openjdk-7-jdk
 RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
 	wget http://eclipse.bluemix.net/packages/mars.1/data/eclipse-cpp-mars-1-linux-gtk-x86_64.tar.gz; \
@@ -151,40 +153,37 @@ RUN ln -s /opt/eclipse/eclipse /usr/local/bin/eclipse
 RUN mkdir /home/wrecs/.ssh
 RUN chown wrecs /home/wrecs/.ssh
 ADD id_rsa /home/wrecs/.ssh/id_rsa
+ADD id_rsa.pub /home/wrecs/.ssh/id_rsa.pub
 RUN chown wrecs /home/wrecs/.ssh/id_rsa
-RUN chmod 700 /home/wrecs/.ssh/id_rsa
-RUN touch /home/wrecs/.ssh/known_hosts
-RUN chown wrecs /home/wrecs/.ssh/known_hosts
-RUN ssh-keyscan github.com >> /home/wrecs/.ssh/known_hosts
+RUN chown wrecs /home/wrecs/.ssh/id_rsa.pub
+RUN chmod 600 /home/wrecs/.ssh/id_rsa
+RUN chmod 600 /home/wrecs/.ssh/id_rsa.pub
+RUN \ 
+  echo "IdentityFile /home/wrecs/.ssh/id_rsa" >> /etc/ssh/ssh_config && \  
+  echo -e "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
 
 ## Setup DRC workspace
-RUN apt-get install -y python-rosinstall python-wstool
+RUN apt-get install -y python-rosinstall python-wstool symlinks
+RUN echo "Creating workspace."
 RUN sudo -H -u wrecs bash -c 'source ~/.bashrc; \
-	echo "source ~/drc_workspace/devel/setup.bash" >> ~/.bashrc; \
-	echo "export ATLAS_ROBOT_INTERFACE=~/drc_workspace/src/drc/bdi_api/AtlasRobotInterface" >> ~/.bashrc; \
-	echo "export LD_LIBRARY_PATH='${LD_LIBRARY_PATH}':'${ATLAS_ROBOT_INTERFACE}'/lib64" >> ~/.bashrc; \
-	echo alias drchome="cd ~/drc_workspace/src/drc/" >> ~/.bashrc; \
-	echo alias drcmake="catkin_make install -DCMAKE_INSTALL_PREFIX:PATH=~/drc_workspace/install -C ~/drc_workspace -DCMAKE_BUILD_TYPE=Release" >> ~/.bashrc; \
-	echo alias drceclipse="catkin_make --force-cmake -G\"Eclipse CDT4 - Unix Makefiles\" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_MAKE_ARGUMENTS=-j8 -C ~/drc_workspace" >> ~/.bashrc; \
-	echo "export GAZEBO_PLUGIN_PATH=~/drc_workspace/devel/lib:'${GAZEBO_PLUGIN_PATH}'" >> ~/.bashrc; \
-	echo "export GAZEBO_MODEL_PATH=~/drc_workspace/src/drc/field/robotiq:'${GAZEBO_MODEL_PATH}'" >> ~/.bashrc; \
-	echo "export PYTHONPATH=~/drc_workspace/src/drc/trajopt/build_trajopt/lib:~/drc_workspace/src/drc/trajopt:'${PYTHONPATH}'" >> ~/.bashrc; \
-	echo "export LD_LIBRARY_PATH='${LD_LIBRARY_PATH}':/usr/lib" >> ~/.bashrc; \
-	echo "export GUROBI_HOME=/opt/gurobi605/linux64" >> ~/.bashrc; \
-	echo "export OPENRAVE_DATA='${OPENRAVE_DATA}':~/drc_workspace/src/drc/trajopt/" >> ~/.bashrc; \
-	echo alias drctrajopt="cd ~/drc_workspace/src/drc/trajopt/" >> ~/.bashrc; \
 	mkdir -p ~/drc_workspace/src; \
         cd ~/drc_workspace/src; \
-        source ~/.bashrc; \
 	source /opt/ros/hydro/setup.sh; \
-        catkin_init_workspace; \
-        cd ~/drc_workspace; \
-        source ~/.bashrc; \
-        catkin_make; \
-	cd ~/drc_workspace/src; \
+	printenv | grep ROS; \
+        catkin_init_workspace'
+RUN echo "Making workspace."
+RUN sudo -H -u wrecs bash -c 'cd ~/drc_workspace; \
+	source /opt/ros/hydro/setup.sh; \
+        catkin_make'
+RUN echo "Adding sources."
+RUN sudo -H -u wrecs bash -c 'cd ~/drc_workspace/src; \
 	wstool init; \
-	wstool set drc git@github.com:WPI-Humanoid-Research-Lab/drc.git --git -y; \
+	wstool set drc git@github.com:WPI-Humanoid-Research-Lab/drc --git -y; \
 	wstool update'
+RUN echo "Finished adding sources."
+ADD sample_bashrc /home/wrecs/sample_bashrc
+RUN cat /home/wrecs/sample_bashrc >> /home/wrecs/.bashrc
+RUN rm -f /home/wrecs/sample_bashrc
 
 ## Install m100
 RUN dpkg -i /home/wrecs/drc_workspace/src/drc/sentis_tof_m100_pkg/m100api-1.0.0-Linux-amd64.deb
@@ -214,4 +213,19 @@ RUN sudo -H -u wrecs bash -c 'cd ~/drc_workspace; \
 ## Expose port and start ssh daemon
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]
+
+########################
+#### X11 FORWARDING ####
+########################
+
+# This will allow us to access the Atlas GUI, and any other gui applications
+
+# Installing the environment required: xserver, xdm, flux box, roc-filer and ssh
+RUN apt-get install -y xpra rox-filer openssh-server pwgen xserver-xephyr xdm fluxbox xvfb sudo
+
+# Configuring xdm to allow connections from any IP address and ssh to allow X11 Forwarding. 
+RUN sed -i 's/DisplayManager.requestPort/!DisplayManager.requestPort/g' /etc/X11/xdm/xdm-config
+RUN sed -i '/#any host/c\*' /etc/X11/xdm/Xaccess
+RUN ln -s /usr/bin/Xorg /usr/bin/X
+RUN echo X11Forwarding yes >> /etc/ssh/ssh_config
 

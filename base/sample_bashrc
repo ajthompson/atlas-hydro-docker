@@ -1,0 +1,16 @@
+#### START ROS SETUP
+source /opt/ros/hydro/setup.bash
+source /usr/share/drcsim/setup.sh
+source ~/drc_workspace/devel/setup.bash
+export ATLAS_ROBOT_INTERFACE=~/drc_workspace/src/drc/bdi_api/AtlasRobotInterface
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${ATLAS_ROBOT_INTERFACE}/lib64
+alias drchome="cd ~/drc_workspace/src/drc/"
+alias drcmake="catkin_make install -DCMAKE_INSTALL_PREFIX:PATH=~/drc_workspace/install -C ~/drc_workspace -DCMAKE_BUILD_TYPE=Release"
+alias drceclipse="catkin_make --force-cmake -G\"Eclipse CDT4 - Unix Makefiles\" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_MAKE_ARGUMENTS=-j8 -C ~/drc_workspace"
+export GAZEBO_PLUGIN_PATH=~/drc_workspace/devel/lib:${GAZEBO_PLUGIN_PATH}
+export GAZEBO_MODEL_PATH=~/drc_workspace/src/drc/field/robotiq:${GAZEBO_MODEL_PATH}
+export PYTHONPATH=~/drc_workspace/src/drc/trajopt/build_trajopt/lib:~/drc_workspace/src/drc/trajopt:${PYTHONPATH}
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/lib
+export GUROBI_HOME=/opt/gurobi605/linux64
+export OPENRAVE_DATA=${OPENRAVE_DATA}:~/drc_workspace/src/drc/trajopt/
+alias drctrajopt="cd ~/drc_workspace/src/drc/trajopt/"
