@@ -17,7 +17,7 @@ RUN apt-get dist-upgrade -y
 # Set the env variable DEBIAN_FRONTEND to noninteractive
 ENV TERM xterm
 ENV DEBIAN_FRONTEND noninteractive
-ENV HOME /home/wrecs
+ENV HOME /home/whrl
 # Necessary for QT-apps/gazebo controls
 ENV QT_X11_NO_MITSHM 1
 #RUN echo "export TERM=xterm" >> /etc/profile
@@ -30,8 +30,8 @@ RUN apt-get install -y apt-utils sudo software-properties-common python-software
 RUN dpkg-divert --local --rename --add /sbin/initctl && ln -sf /bin/true /sbin/initctl
 
 # Setup wrecs user
-RUN useradd -b /home -m wrecs
-RUN echo 'wrecs:wrecs' | chpasswd
+RUN useradd -b /home -m whrl
+RUN echo 'whrl:whrl' | chpasswd
 RUN echo 'root:root' | chpasswd
 
 # ubuntu precise image doesn't have universe repo
@@ -42,9 +42,6 @@ RUN add-apt-repository "deb http://archive.ubuntu.com/ubuntu precise main univer
 RUN apt-get install -y openssh-server
 RUN mkdir /var/run/sshd
 #RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-
-# Run WRECS stuff
-#RUN sudo -H -u wrecs bash -c 'bash /home/wrecs/install_scripts/install.bash'
 
 ###############
 #### WRECS ####
@@ -74,7 +71,7 @@ RUN apt-get install -y openrave
 ## Install ROS Hydro
 RUN aptitude install ros-hydro-desktop-full -y
 RUN rosdep init
-RUN sudo -H -u wrecs bash -c 'rosdep update'
+RUN sudo -H -u whrl bash -c 'rosdep update'
 
 ## install ros packages that are needed
 RUN apt-get install -y ros-hydro-qt-ros ros-hydro-multisense ros-hydro-razer-hydra ros-hydro-camera-info-manager-py
@@ -83,21 +80,21 @@ RUN apt-get install -y ros-hydro-pr2-mechanism ros-hydro-axis-camera ros-hydro-r
 RUN apt-get install -y ros-hydro-octomap-ros ros-hydro-libg2o
 
 ## Install g2o fix
-RUN sudo -H -u wrecs bash -c 'mkdir ~/Downloads; \
+RUN sudo -H -u whrl bash -c 'mkdir ~/Downloads; \
 	cd ~/Downloads; \
 	wget http://www.dropbox.com/s/l0q4oc7yuk00t92/if_g2o_is_missed.zip; \
 	unzip if_g2o_is_missed.zip'
-RUN mv /home/wrecs/Downloads/if_g2o_is_missed/cmake /opt/ros/hydro/share/libg2o/
-RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
+RUN mv /home/whrl/Downloads/if_g2o_is_missed/cmake /opt/ros/hydro/share/libg2o/
+RUN sudo -H -u whrl bash -c 'cd ~/Downloads; \
 	rm -rf if_g2o_is_missed; \
 	rm if_g2o_is_missed.zip;'
 
 ## Install gurobi
-RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
+RUN sudo -H -u whrl bash -c 'cd ~/Downloads; \
 	wget https://dl.dropboxusercontent.com/u/30063350/gurobi6.0.5_linux64.tar.gz; \
 	tar xf ~/Downloads/gurobi6.0.5_linux64.tar.gz'
-RUN mv /home/wrecs/Downloads/gurobi605 /opt
-RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
+RUN mv /home/whrl/Downloads/gurobi605 /opt
+RUN sudo -H -u whrl bash -c 'cd ~/Downloads; \
 	rm -f gurobi6.0.5_linux64.tar.gz; \
 	rm -rf gurobi605; \
 	echo 'export GUROBI_HOME=/opt/gurobi605/linux64' >> ~/.bashrc'
@@ -105,19 +102,19 @@ RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
 ## Install flycapture
 RUN apt-get install -y libraw1394-11 libgtk2.0-0 libgtkmm-2.4-dev libglademm-2.4-dev 
 RUN apt-get install -y libgtkglextmm-x11-1.2-dev libusb-1.0-0 build-essential
-RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
+RUN sudo -H -u whrl bash -c 'cd ~/Downloads; \
 	wget -N https://raw.github.com/WPI-Atlas-Lab/AtlasLab/master/flycapture2-2.7.3.19-amd64-pkg.tgz; \
 	tar xvf flycapture2-2.7.3.19-amd64-pkg.tgz'
-RUN dpkg -i /home/wrecs/Downloads/flycapture2-2.7.3.19-amd64/libflycapture-2*
-RUN dpkg -i /home/wrecs/Downloads/flycapture2-2.7.3.19-amd64/libflycapturegui-2*
-RUN dpkg -i /home/wrecs/Downloads/flycapture2-2.7.3.19-amd64/libflycapture-c-2*
-RUN dpkg -i /home/wrecs/Downloads/flycapture2-2.7.3.19-amd64/libflycapturegui-c-2*
-RUN dpkg -i /home/wrecs/Downloads/flycapture2-2.7.3.19-amd64/libmultisync-2*
-RUN dpkg -i /home/wrecs/Downloads/flycapture2-2.7.3.19-amd64/flycap-2*
-RUN dpkg -i /home/wrecs/Downloads/flycapture2-2.7.3.19-amd64/flycapture-doc-2*
-RUN dpkg -i /home/wrecs/Downloads/flycapture2-2.7.3.19-amd64/updatorgui*
+RUN dpkg -i /home/whrl/Downloads/flycapture2-2.7.3.19-amd64/libflycapture-2* && \
+  dpkg -i /home/whrl/Downloads/flycapture2-2.7.3.19-amd64/libflycapturegui-2* && \
+  dpkg -i /home/whrl/Downloads/flycapture2-2.7.3.19-amd64/libflycapture-c-2* && \
+  dpkg -i /home/whrl/Downloads/flycapture2-2.7.3.19-amd64/libflycapturegui-c-2* && \
+  dpkg -i /home/whrl/Downloads/flycapture2-2.7.3.19-amd64/libmultisync-2* && \
+  dpkg -i /home/whrl/Downloads/flycapture2-2.7.3.19-amd64/flycap-2* && \
+  dpkg -i /home/whrl/Downloads/flycapture2-2.7.3.19-amd64/flycapture-doc-2* && \
+  dpkg -i /home/whrl/Downloads/flycapture2-2.7.3.19-amd64/updatorgui*
 RUN groupadd -f pgrimaging
-RUN usermod -a -G pgrimaging wrecs
+RUN usermod -a -G pgrimaging whrl
 RUN /etc/init.d/udev restart
 # Now lets not notify the server, because they made an inconvenient interactive only
 # install script
@@ -127,75 +124,82 @@ RUN apt-get install -y drcsim-hydro
 
 ## Install useful software
 RUN apt-get install -y gconf-service libgconf-2-4 libnspr4 libnss3 libappindicator1
-RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
+RUN sudo -H -u whrl bash -c 'cd ~/Downloads; \
 	wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'
-RUN dpkg -i /home/wrecs/Downloads/google-chrome-stable_current_amd64.deb
+RUN dpkg -i /home/whrl/Downloads/google-chrome-stable_current_amd64.deb
 RUN apt-get install -y terminator qtcreator stress fping iftop lm-sensors vm emacs htop
 RUN apt-get install -y gimp gitg gitk screen tshark wireshark ntp vim
 RUN apt-get install -y openjdk-7-jre openjdk-7-jdk
-RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
+RUN sudo -H -u whrl bash -c 'cd ~/Downloads; \
 	wget http://eclipse.bluemix.net/packages/mars.1/data/eclipse-cpp-mars-1-linux-gtk-x86_64.tar.gz; \
 	tar xvf eclipse-cpp-mars-1-linux-gtk-x86_64.tar.gz'
-RUN mv /home/wrecs/Downloads/eclipse /opt
-RUN echo '[Desktop Entry]' >> /usr/share/applications/eclipse.desktop
-RUN echo 'Name=Eclipse' >> /usr/share/applications/eclipse.desktop
-RUN echo 'Type=Application' >> /usr/share/applications/eclipse.desktop
-RUN echo 'Exec=/opt/eclipse/eclipse' >> /usr/share/applications/eclipse.desktop
-RUN echo 'Terminal=false' >> /usr/share/applications/eclipse.desktop
-RUN echo 'Icon=/opt/eclipse/icon.xpm' >> /usr/share/applications/eclipse.desktop
-RUN echo 'Comment=Integrated Development Environment' >> /usr/share/applications/eclipse.desktop
-RUN echo 'NoDisplay=false' >> /usr/share/applications/eclipse.desktop
-RUN echo 'Categories=Development;IDE' >> /usr/share/applications/eclipse.desktop
-RUN echo 'Name[en]=Eclipse' >> /usr/share/applications/eclipse.desktop
-RUN ln -s /opt/eclipse/eclipse /usr/local/bin/eclipse
+RUN mv /home/whrl/Downloads/eclipse /opt
+RUN echo '[Desktop Entry]' >> /usr/share/applications/eclipse.desktop && \
+  echo 'Name=Eclipse' >> /usr/share/applications/eclipse.desktop && \ 
+  echo 'Type=Application' >> /usr/share/applications/eclipse.desktop && \ 
+  echo 'Exec=/opt/eclipse/eclipse' >> /usr/share/applications/eclipse.desktop && \
+  echo 'Terminal=false' >> /usr/share/applications/eclipse.desktop && \ 
+  echo 'Icon=/opt/eclipse/icon.xpm' >> /usr/share/applications/eclipse.desktop && \
+  echo 'Comment=Integrated Development Environment' >> /usr/share/applications/eclipse.desktop && \
+  echo 'NoDisplay=false' >> /usr/share/applications/eclipse.desktop && \
+  echo 'Categories=Development;IDE' >> /usr/share/applications/eclipse.desktop && \
+  echo 'Name[en]=Eclipse' >> /usr/share/applications/eclipse.desktop && \
+  ln -s /opt/eclipse/eclipse /usr/local/bin/eclipse
 
 ## Copy over users ssh key
-RUN mkdir /home/wrecs/.ssh
-RUN chown wrecs /home/wrecs/.ssh
-ADD id_rsa /home/wrecs/.ssh/id_rsa
-ADD id_rsa.pub /home/wrecs/.ssh/id_rsa.pub
-RUN chown wrecs /home/wrecs/.ssh/id_rsa
-RUN chown wrecs /home/wrecs/.ssh/id_rsa.pub
-RUN chmod 600 /home/wrecs/.ssh/id_rsa
-RUN chmod 600 /home/wrecs/.ssh/id_rsa.pub
+RUN mkdir /home/whrl/.ssh && \ 
+  chown whrl /home/whrl/.ssh
+ADD id_rsa /home/whrl/.ssh/id_rsa
+ADD id_rsa.pub /home/whrl/.ssh/id_rsa.pub
+RUN chown whrl /home/whrl/.ssh/id_rsa && \
+  chown whrl /home/whrl/.ssh/id_rsa.pub && \
+  chmod 600 /home/whrl/.ssh/id_rsa && \
+  chmod 600 /home/whrl/.ssh/id_rsa.pub
 RUN \ 
   echo "IdentityFile /home/wrecs/.ssh/id_rsa" >> /etc/ssh/ssh_config && \  
   echo -e "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
 
+## Copy over host public key to setup passwordless ssh
+RUN mkdir -p /home/root/.ssh
+ADD host_rsa.pub /tmp
+RUN cat /tmp/host_rsa.pub >> /home/root/.ssh/authorized_keys && \
+  cat /tmp/host_rsa.pub >> /home/whrl/.ssh/authorized_keys && \
+  rm -f /tmp/host_rsa.pub
+
 ## Setup DRC workspace
 RUN apt-get install -y python-rosinstall python-wstool symlinks
 RUN echo "Creating workspace."
-RUN sudo -H -u wrecs bash -c 'source ~/.bashrc; \
+RUN sudo -H -u whrl bash -c 'source ~/.bashrc; \
 	mkdir -p ~/drc_workspace/src; \
         cd ~/drc_workspace/src; \
 	source /opt/ros/hydro/setup.sh; \
 	printenv | grep ROS; \
         catkin_init_workspace'
 RUN echo "Making workspace."
-RUN sudo -H -u wrecs bash -c 'cd ~/drc_workspace; \
+RUN sudo -H -u whrl bash -c 'cd ~/drc_workspace; \
 	source /opt/ros/hydro/setup.sh; \
         catkin_make'
 RUN echo "Adding sources."
-RUN sudo -H -u wrecs bash -c 'cd ~/drc_workspace/src; \
+RUN sudo -H -u whrl bash -c 'cd ~/drc_workspace/src; \
 	wstool init; \
 	wstool set drc git@github.com:WPI-Humanoid-Research-Lab/drc --git -y; \
 	wstool update'
 RUN echo "Finished adding sources."
-ADD sample_bashrc /home/wrecs/sample_bashrc
-RUN cat /home/wrecs/sample_bashrc >> /home/wrecs/.bashrc
-RUN rm -f /home/wrecs/sample_bashrc
+ADD sample_bashrc /home/whrl/sample_bashrc
+RUN cat /home/whrl/sample_bashrc >> /home/wrecs/.bashrc
+RUN rm -f /home/whrl/sample_bashrc
 
 ## Install m100
-RUN dpkg -i /home/wrecs/drc_workspace/src/drc/sentis_tof_m100_pkg/m100api-1.0.0-Linux-amd64.deb
+RUN dpkg -i /home/whrl/drc_workspace/src/drc/sentis_tof_m100_pkg/m100api-1.0.0-Linux-amd64.deb
 
 ## Download and copy over libAtlasSimInterface.so
-RUN sudo -H -u wrecs bash -c 'cd ~/Downloads; \
+RUN sudo -H -u whrl bash -c 'cd ~/Downloads; \
 	wget https://dl.dropboxusercontent.com/u/30063350/AtlasSimInterface_3.0.2.tar.gz; \
 	tar xvf AtlasSimInterface_3.0.2.tar.gz'
 RUN mv /home/wrecs/Downloads/AtlasSimInterface_3.0.2/lib64/libAtlasSimInterface.so.3.0.2 /opt/ros/hydro/lib/libAtlasSimInterface3.so.3.0.2
 
 ## Build the workspace
-RUN sudo -H -u wrecs bash -c 'cd ~/drc_workspace; \
+RUN sudo -H -u whrl bash -c 'cd ~/drc_workspace; \
 	source ~/.bashrc; \
 	source /opt/ros/hydro/setup.sh; \
 	source /usr/share/drcsim/setup.sh; \
